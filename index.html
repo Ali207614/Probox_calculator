@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Калькулятор рассрочки</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Geologica:wght@400;600;800&display=swap");
+
+    body {
+      background-color: #f9f9f9;
+      font-family: "Geologica", Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .card {
+      background-color: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      width: 400px;
+      border-top: 8px solid #ff333f;
+      text-align: center;
+    }
+
+    .lang {
+      text-align: right;
+      margin-bottom: 10px;
+    }
+
+    .field {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    .field label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      color: #303030;
+    }
+
+    .field input,
+    .field select {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    .result {
+      font-size: 16px;
+      font-weight: bold;
+      margin-top: 15px;
+      color: #ff333f;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <div class="lang">
+      <select id="langSelect">
+        <option value="ru">Русский</option>
+        <option value="uz">O‘zbekcha</option>
+      </select>
+    </div>
+    <div>
+      <img src="logo.svg" width="100" height="100" alt="svg">
+    </div>
+    <div class="field">
+      <label id="labelRate">Курс доллара (1 USD = ? сум)</label>
+      <input type="number" id="usdRate" placeholder="12500" />
+    </div>
+    <div class="field">
+      <label id="labelPrice">Цена товара (в $)</label>
+      <input type="number" id="price" placeholder="$" />
+    </div>
+    <div class="field">
+      <label id="labelDown">Первоначальный взнос (в $)</label>
+      <input type="number" id="downpayment" placeholder="$" />
+    </div>
+    <div class="field">
+      <label id="labelMonths">Срок (мес.)</label>
+      <select id="months">
+        <option value="">Выберите / Tanlang</option>
+      </select>
+    </div>
+    <div class="result" id="payment">Ежемесячный платёж: —</div>
+    <div class="result" id="total">Общая сумма: —</div>
+  </div>
+
+  <script>
+    function formatterCurrency(
+      number = 0,
+      currency = "UZS",
+      locale = "ru",
+      maximumSignificantDigits = 10
+    ) {
+      return number.toLocaleString(locale, {
+        style: "currency",
+        currency: currency,
+        maximumSignificantDigits: maximumSignificantDigits,
+      });
+    }
+    const langData = {
+      ru: {
+        rate: "Курс доллара (1 USD = ? сум)",
+        price: "Цена товара (в $)",
+        down: "Первоначальный взнос (в $)",
+        months: "Срок (мес.)",
+        monthly: "Ежемесячный платёж",
+        total: "Общая сумма"
+      },
+      uz: {
+        rate: "1 USD kursi (so'm)",
+        price: "Mahsulot narxi ($)",
+        down: "Boshlang'ich to'lov ($)",
+        months: "Muddat (oy)",
+        monthly: "Oylik to‘lov",
+        total: "Umumiy summa"
+      }
+    };
+
+    const markupTable = {
+      1: 5,
+      2: 10,
+      3: 17,
+      4: 25,
+      5: 35,
+      6: 38,
+      7: 43,
+      8: 47,
+      9: 50,
+      10: 55,
+      11: 58,
+      12: 63,
+      13: 65,
+      14: 68,
+      15: 70,
+      16: 73,
+      17: 77,
+      18: 80,
+      19: 83,
+      20: 85
+    };
+
+    const langSelect = document.getElementById("langSelect");
+    const usdRateInput = document.getElementById("usdRate");
+    const priceInput = document.getElementById("price");
+    const downInput = document.getElementById("downpayment");
+    const monthsSelect = document.getElementById("months");
+    const payment = document.getElementById("payment");
+    const total = document.getElementById("total");
+
+    function updateLabels() {
+      const lang = langSelect.value;
+      document.getElementById("labelRate").textContent = langData[lang].rate;
+      document.getElementById("labelPrice").textContent = langData[lang].price;
+      document.getElementById("labelDown").textContent = langData[lang].down;
+      document.getElementById("labelMonths").textContent = langData[lang].months;
+      calculate();
+    }
+
+    for (let i = 1; i <= 20; i++) {
+      const opt = document.createElement("option");
+      opt.value = i;
+      opt.text = i;
+      monthsSelect.appendChild(opt);
+    }
+
+    function calculate() {
+      const rate = parseFloat(usdRateInput.value);
+      const price = parseFloat(priceInput.value);
+      const down = parseFloat(downInput.value);
+      const months = parseInt(monthsSelect.value);
+      const lang = langSelect.value;
+
+      if (!rate || !price || !down || !months || !markupTable[months]) {
+        payment.innerText = `${langData[lang].monthly}: —`;
+        total.innerText = `${langData[lang].total}: —`;
+        return;
+      }
+
+      const markup = markupTable[months];
+      const toFinance = price - down;
+      const totalUSD = toFinance * (1 + markup / 100);
+      const monthlyUSD = totalUSD / months;
+      const monthlySUM = monthlyUSD * rate;
+      const totalSUM = totalUSD * rate;
+
+      payment.innerText =
+        `${langData[lang].monthly}: ${formatterCurrency(Number(monthlyUSD.toFixed(2) || 0) || 0,"USD")} / ${formatterCurrency(Math.round(monthlySUM),"UZS")}`;
+      total.innerText =
+        `${langData[lang].total}: ${formatterCurrency(Number(totalUSD.toFixed(2) || 0) || 0,'USD')} / ${formatterCurrency(Math.round(totalSUM),'UZS')}`;
+    }
+
+    langSelect.addEventListener("change", updateLabels);
+    usdRateInput.addEventListener("input", calculate);
+    priceInput.addEventListener("input", calculate);
+    downInput.addEventListener("input", calculate);
+    monthsSelect.addEventListener("change", calculate);
+
+    updateLabels();
+  </script>
+</body>
+
+</html>
